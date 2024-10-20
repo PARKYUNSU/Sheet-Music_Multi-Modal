@@ -8,6 +8,7 @@ import numpy as np
 import pytesseract
 import os
 from PIL import Image
+import re
 
 # Tesseract 경로 설정 (기본 설치 경로가 아니라면 직접 설정)
 pytesseract.pytesseract.tesseract_cmd = '/opt/homebrew/bin/tesseract'
@@ -127,12 +128,23 @@ def detect_time_signature(binary_image, notes):
             # 기존 방식으로 박자 템플릿 매칭 수행
             print(f"기존 템플릿 매칭을 통해 박자 확인: X좌표 {x}")
 
-def extract_lyrics(image_path):
+def extract_lyrics(image_path, staff_lines):
     # 가사 추출 (OCR 사용)
     image = Image.open(image_path)
     custom_oem_psm_config = r'--oem 3 --psm 6'
     text = pytesseract.image_to_string(image, lang='kor', config=custom_oem_psm_config)
-    return text
+    
+    # 불필요한 기호 및 특수문자 제거, 한글만 남기기
+    lyrics = re.sub(r'[^가-힣\s]', '', text)
+    lyrics = [line.strip() for line in lyrics.split('\n') if len(line.strip()) > 1]
+    
+    # 오선과 겹치지 않는 영역에서 가사만 추출
+    lyrics_filtered = []
+    for line in lyrics:
+        if not any(staff_line for staff_line in staff_lines if isinstance(staff_line, int) and str(staff_line) in line):
+            lyrics_filtered.append(line)
+    
+    return '\n'.join(lyrics_filtered)
 
 def preprocess_for_ocr(image_path):
     # 이미지 전처리 (OCR 품질 개선)
@@ -173,7 +185,7 @@ def main(image_path, template_paths):
     
     # 가사 추출 및 출력 (전처리 후 OCR 적용)
     preprocessed_image_path = preprocess_for_ocr(image_path)
-    lyrics = extract_lyrics(preprocessed_image_path)
+    lyrics = extract_lyrics(preprocessed_image_path, one)
     print("추출된 가사:")
     print(lyrics)
     
