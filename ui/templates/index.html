@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>Lyric Sync — Web UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#0b1020; --card:#101731; --ink:#e8f0ff; --muted:#9fb6ff; --accent:#5aa6ff; --accent2:#9ad1ff; }
+    * { box-sizing: border-box; } html, body { height:100%; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; margin:0; padding:0; background:var(--bg); color:var(--ink); }
+    .wrap { max-width:1080px; margin:0 auto; padding:24px; }
+    .card { background:var(--card); border-radius:20px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,0.35); position:relative; }
+    .title { font-size:18px; opacity:.85; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+    .title .badge { font-size:12px; padding:6px 10px; border-radius:999px; background:#192243; color:var(--muted); }
+    .controls { position:absolute; top:16px; right:16px; display:flex; gap:8px; }
+    .btn { border:1px solid #24315a; background:#141e3d; color:#cfe1ff; padding:6px 10px; border-radius:10px; cursor:pointer; }
+    .btn:hover { filter:brightness(1.1); }
+    .line { font-size: clamp(28px, 4.2vw, 48px); line-height:1.35; margin:12px 0; word-break:keep-all; }
+    .line .ghost { opacity:.28; }
+    .line.current { font-weight:700; } .line.next { opacity:.7; }
+    .bar { height:12px; border-radius:999px; background:#182449; overflow:hidden; margin-top:12px; position:relative; }
+    .fill { height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width 160ms ease; }
+    .shine { position:absolute; top:0; left:0; height:100%; width:20%; background:linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0)); transform:translateX(-100%); animation:slide 1.8s infinite; }
+    @keyframes slide { 0% { transform: translateX(-100%);} 100% { transform: translateX(500%);} }
+    .meta { font-size:12px; opacity:.8; margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .pill { font-size:12px; padding:4px 8px; border-radius:999px; background:#1b2550; color:#bcd1ff; border:1px solid #29376a; }
+    .section { font-size:13px; opacity:.85; margin-right:6px; padding:4px 8px; border-radius:8px; background:#1a2347; color:#98bdff; border:1px solid #2a3a6f; }
+    .fs { position:fixed; inset:0; background:var(--bg); display:none; padding:24px; }
+    .fs.active { display:block; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="title">
+      <span>Lyric Sync — 실시간 자막</span>
+      <span id="status" class="badge">연결 시도...</span>
+      <span id="section" class="section">섹션</span>
+      <div class="controls">
+        <button class="btn" id="btnGO">GO</button>
+        <button class="btn" id="btnHOLD">HOLD</button>
+        <button class="btn" id="btnFS">전체화면</button>
+      </div>
+    </div>
+    <div id="current" class="line current"></div>
+    <div id="next" class="line next"></div>
+    <div class="bar">
+      <div class="fill" id="fill"></div>
+      <div class="shine"></div>
+    </div>
+    <div class="meta">
+      <span id="meta">—</span>
+      <span id="label" class="pill">label</span>
+      <span id="lead" class="pill">lead</span>
+    </div>
+  </div>
+</div>
+
+<div id="fullscreen" class="fs">
+  <div class="card" style="background:transparent; box-shadow:none; border:0; height:100%; display:flex; flex-direction:column; justify-content:center;">
+    <div id="fsCurrent" class="line current" style="text-align:center; font-size:clamp(32px, 6vw, 72px);"></div>
+    <div id="fsNext" class="line next" style="text-align:center; font-size:clamp(20px, 3.5vw, 48px);"></div>
+    <div class="bar" style="max-width:1200px; margin:16px auto 0;">
+      <div class="fill" id="fsFill"></div>
+      <div class="shine"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+<script>
+  const statusEl=document.getElementById('status'), currentEl=document.getElementById('current'), nextEl=document.getElementById('next');
+  const fillEl=document.getElementById('fill'), metaEl=document.getElementById('meta'), labelEl=document.getElementById('label');
+  const sectionEl=document.getElementById('section'), leadEl=document.getElementById('lead');
+  const fs=document.getElementById('fullscreen'), fsCurrent=document.getElementById('fsCurrent'), fsNext=document.getElementById('fsNext'), fsFill=document.getElementById('fsFill');
+  const btnFS=document.getElementById('btnFS'), btnGO=document.getElementById('btnGO'), btnHOLD=document.getElementById('btnHOLD');
+  const socket=io(); socket.on('connect',()=>{statusEl.textContent='연결됨';});
+  function highlightProgress(text,ratio){ const n=Math.max(0,Math.min(text.length,Math.floor(text.length*ratio))); return `<span>${text.slice(0,n)}</span><span class="ghost">${text.slice(n)}</span>`; }
+  socket.on('state',(data)=>{
+    const { current,next,locked,progress,score_curr,score_next,partial,label,section,lead_ms }=data;
+    const r=Math.min(1,Math.max(0,(progress||0)/100));
+    currentEl.innerHTML=highlightProgress(current||'',r); nextEl.textContent=next||'(다음 없음)'; fillEl.style.width=String(Math.round((progress||0)))+'%';
+    fsCurrent.innerHTML=highlightProgress(current||'',r); fsNext.textContent=next||'(다음 없음)'; fsFill.style.width=String(Math.round((progress||0)))+'%';
+    statusEl.textContent=locked?'고정됨':'진행중'; metaEl.textContent=`현재 유사도: ${Math.round(score_curr||0)} / 다음: ${Math.round(score_next||0)} · 부분: ${partial||''}`;
+    labelEl.textContent=label||'—'; sectionEl.textContent=section||'—'; leadEl.textContent=`lead: ${lead_ms||0}ms`;
+  });
+  socket.on('disconnect',()=>{statusEl.textContent='연결 끊김';});
+  btnFS.addEventListener('click',()=>{ if(!document.fullscreenElement){ fs.classList.add('active'); fs.requestFullscreen?.(); } else { document.exitFullscreen?.(); fs.classList.remove('active'); }});
+  document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement) fs.classList.remove('active'); });
+  btnGO.addEventListener('click',()=>{ socket.emit('cmd',{type:'GO'}); });
+  btnHOLD.addEventListener('click',()=>{ socket.emit('cmd',{type:'HOLD_TOGGLE'}); });
+  window.addEventListener('keydown',(e)=>{ if(e.code==='Space'){ e.preventDefault(); socket.emit('cmd',{type:'GO'});} if(e.code==='KeyH'){ e.preventDefault(); socket.emit('cmd',{type:'HOLD_TOGGLE'});} });
+</script>
+</body>
+</html>

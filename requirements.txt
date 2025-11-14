@@ -1,44 +1,12 @@
-# 실시간 악보-연주 싱크 & 가사 디스플레이 프로젝트
-# 필요한 Python 라이브러리들
-
-# 기본 데이터 처리
-numpy>=1.24.0
-pandas>=1.5.0
-
-# 이미지 처리 및 컴퓨터 비전
-opencv-python>=4.8.0
-Pillow>=9.0.0
-
-# 음악 처리
-music21>=9.0.0
-pretty_midi>=0.2.10
-librosa>=0.10.0
-
-# 오디오 처리
-pyaudio>=0.2.11
-soundfile>=0.12.0
-
-# OCR (가사 인식)
-pytesseract>=0.3.10
-
-# 웹 프레임워크 (실시간 UI)
-flask>=2.3.0
-flask-socketio>=5.3.0
-
-# 실시간 처리
-websockets>=11.0.0
-
-# 데이터 직렬화
-json5>=0.9.0
-
-# 시각화
-matplotlib>=3.7.0
-seaborn>=0.12.0
-
-# 유틸리티
-tqdm>=4.65.0
-pathlib2>=2.3.0
-
-# 개발 도구
-jupyter>=1.0.0
-ipykernel>=6.0.0
+faster-whisper==1.0.3
+sounddevice==0.4.6
+numpy>=1.23
+rapidfuzz==3.9.6
+Flask==3.0.3
+flask-socketio==5.3.6
+eventlet==0.36.1
+vosk==0.3.44
+webrtcvad==2.0.10
+librosa==0.10.1
+soundfile==0.12.1
+streamlit==1.37.1
